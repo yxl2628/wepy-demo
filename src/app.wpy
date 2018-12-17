@@ -13,17 +13,10 @@
 import wepy from 'wepy'
 import 'wepy-async-function'
 
-import { setStore } from 'wepy-redux'
-import configStore from './store'
-
-const store = configStore()
-setStore(store)
-
 export default class extends wepy.app {
   config = {
     pages: [
-      'pages/index',
-      'pages/demo'
+      'pages/index'
     ],
     window: {
       navigationStyle: 'custom'
@@ -40,7 +33,12 @@ export default class extends wepy.app {
   }
 
   onLaunch() {
-    console.log('onLaunch')
+    const that = this
+    wepy.getSystemInfo({
+      success: function (res) {
+        that.globalData.height = res.windowHeight
+      }
+    })
   }
 
   getUserInfo(cb) {

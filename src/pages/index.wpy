@@ -3,33 +3,45 @@ page {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  .swiper-content {
+}
+.body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 99;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+.swiper-content {
+  width: 100%;
+  height: 100%;
+  .swiper-item {
     width: 100%;
     height: 100%;
-    image {
+    .preview-image {
       width: 100%;
-      height: 100%;
+      height: 100vh;
     }
   }
-  video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
+}
+video {
+  width: 100%;
+  height: 100%;
 }
 </style>
 <template>
-  <video id="video" custom-cache="{{false}}" bindplay="play" autoplay enable-progress-gesture="{{false}}"
+  <video id="video" autoplay custom-cache="{{false}}" bindplay="play" enable-progress-gesture="{{false}}" objectFit="cover"
   show-center-play-btn="{{false}}" controls="{{false}}" bindended="playend" src="{{current.url}}"></video>
-  <swiper class="swiper-content" circular="{{true}}" vertical="{{true}}" bindchange="changeVideo">
-    <swiper-item wx:for="{{list}}" wx:key="{{item.id}}">
-      <image src="{{item.url}}.jpg"></image>
-    </swiper-item>
-  </swiper>
-  <cover-view class="over" bindtouchstart="touchstart" bindtouchend="touchend">
-  <cover-view>
+  <cover-view class="body" bindtouchstart="touchstart" bindtouchend="touchend">
+    <cover-view hidden="{{!ismove || play}}" class="swiper-content">
+      <cover-view class="scroll" animation="{{moveStart}}">
+        <cover-view wx:key="{{item.id}}" wx:for="{{list}}" class="swiper-item">
+          <cover-image class="preview-image" src="{{item.url}}.jpg"></cover-image>
+        </cover-view>
+      </cover-view>
+    </cover-view>
+  </cover-view>
 </template>
 
 <script>
@@ -44,6 +56,10 @@ export default class Index extends wepy.page {
     current: {
       url: ''
     },
+    index: 0,
+    play: false,
+    ismove: false,
+    moveStart: '',
     list: [
       {
         'id': 75659,
@@ -94,21 +110,55 @@ export default class Index extends wepy.page {
       this.$apply()
     },
     play () {
-      console.log('play')
+      this.play = true
+      this.ismove = false
+      this.$apply()
     },
     playend () {
-      console.log('playend')
+      this.video.play()
     },
-    touchstart () {
-
+    touchstart (ev) {
+      if (ev.touches.length > 1) return
+      this.startX = ev.touches[0].pageX
+      this.startY = ev.touches[0].pageY
     },
-    touchend () {
-
+    touchend (ev) {
+      this.endX = ev.changedTouches[0].pageX
+      this.endY = ev.changedTouches[0].pageY
+      if (Math.abs(this.endY - this.startY) < 5 && Math.abs(this.endX - this.startX) < 5) {
+        this.play ? this.video.pause() : this.video.play()
+        this.play = !this.play
+      }
+      // 横向滑动
+      if (Math.abs(this.endX - this.startX) > Math.abs(this.endY - this.startY)) return
+      if (Math.abs(this.endY - this.startY) > 24) {
+        this.play = false
+        this.ismove = true
+        if (this.endY > this.startY) { // 向上滑动
+          if (this.index > 0) {
+            this.index -= 1
+            this.animation.translateY(-this.index * this.height).step()
+            this.current = this.list[this.index]
+            this.moveStart = this.animation.export()
+          }
+        } else { // 向下滑动
+          this.index += 1
+          this.animation.translateY(-this.index * this.height).step()
+          this.current = this.list[this.index]
+          this.moveStart = this.animation.export()
+        }
+      }
+      this.$apply()
     }
   }
 
   onLoad() {
-    this.current = this.list[0]
+    this.video = wepy.createVideoContext('video')
+    this.animation = wepy.createAnimation()
+    this.current = this.list[this.index]
+    this.height = this.$parent.globalData.height
+    this.video.play()
+    this.$apply()
   }
 }
 </script>
