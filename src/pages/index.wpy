@@ -21,19 +21,19 @@ page {
   color: #fff;
   font-size: 30px;
   text-align: center;
+  &.show {
+    opacity: 0;
+  }
+  &.hide {
+    opacity: 1;
+  }
 }
 .swipe-items-wrap {
   position: relative;
   overflow: hidden;
-  height: 100%;
-}
-.swipe-items-wrap {
-  position: absolute;
-  width: 100%;
-  height: 100%;
 }
 .swipe-item {
-  height: 100%;
+  height: 100vh;
 }
 video {
   width: 100%;
@@ -44,9 +44,9 @@ video {
   <video id="video" autoplay custom-cache="{{false}}" bindplay="play" enable-progress-gesture="{{false}}" objectFit="cover"
   show-center-play-btn="{{false}}" controls="{{false}}" bindended="playend" src="{{current.url}}"></video>
   <cover-view class="body" bindtouchstart="touchstart" bindtouchend="touchend">
-    <cover-view hidden="{{!ismove || play}}" class="swipe">
-      <cover-view class="swipe-items-wrap">
-        <cover-view hidden="{{index !== currentIndex}}" wx:for-index="index" wx:key="{{item.id}}" wx:for="{{list}}" class="swipe-item">
+    <cover-view class="swipe {{(!ismove || play) ? 'show' : 'hide'}}">
+      <cover-view class="swipe-items-wrap" animation="{{moveAnimate}}">
+        <cover-view wx:for-index="index" wx:key="{{item.id}}" wx:for="{{list}}" class="swipe-item">
           <cover-image class="preview-image" src="{{item.url}}.jpg"></cover-image>
         </cover-view>
       </cover-view>
@@ -69,7 +69,7 @@ export default class Index extends wepy.page {
     currentIndex: 0,
     play: false,
     ismove: false,
-    moveStart: '',
+    moveAnimate: '',
     list: [
       {
         'id': 75659,
@@ -144,21 +144,22 @@ export default class Index extends wepy.page {
       if (Math.abs(this.endY - this.startY) > 24) {
         this.play = false
         this.ismove = true
+        this.$apply()
         if (this.endY > this.startY) { // 向上滑动
           if (this.currentIndex > 0) {
             this.currentIndex -= 1
-            this.animation.translateY(100 + '%').step()
+            this.animation.translateY(-this.currentIndex * this.height).step()
             this.current = this.list[this.currentIndex]
-            this.moveStart = this.animation.export()
+            this.moveAnimate = this.animation.export()
           }
         } else { // 向下滑动
           this.currentIndex += 1
-          this.animation.translateY(-100 + '%').step()
+          this.animation.translateY(-this.currentIndex * this.height).step()
           this.current = this.list[this.currentIndex]
-          this.moveStart = this.animation.export()
+          this.moveAnimate = this.animation.export()
         }
+        this.$apply()
       }
-      this.$apply()
     }
   }
 
@@ -168,7 +169,7 @@ export default class Index extends wepy.page {
     this.current = this.list[this.currentIndex]
     this.height = this.$parent.globalData.height
     this.animation.translateY(0).step()
-    this.moveStart = this.animation.export()
+    this.moveAnimate = this.animation.export()
     this.video.play()
     this.$apply()
   }
